@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ticketmsters® | Concerts, Sports, Arts, Theater & Comedy Tickets</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,700;0,800;1,800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            tm: {
+              blue: '#026CDF',
+              blueDark: '#0152AD',
+              charcoal: '#121212',
+              cardDark: '#1A1A1A',
+              surface: '#F6F6F6',
+              border: '#E2E8F0',
+              textDark: '#121212',
+              textMuted: '#595959',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #FFFFFF;
+      color: #121212;
+      overflow-x: hidden;
+    }
+
+    /* Interactive Seat Map Styling */
+    .venue-section {
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .venue-section:hover {
+      filter: brightness(1.18) drop-shadow(0 0 8px rgba(2, 108, 223, 0.55));
+    }
+    .venue-section.selected {
+      stroke: #121212 !important;
+      stroke-width: 3.5px !important;
+      filter: brightness(1.2) drop-shadow(0 0 12px rgba(2, 108, 223, 0.8));
+    }
+
+    .seat-dot {
+      cursor: pointer;
+      transition: transform 0.15s ease, fill 0.15s ease;
+    }
+    .seat-dot:hover {
+      transform: scale(1.3);
+    }
+
+    /* Holographic Strip for Digital Ticket */
+    .holo-strip {
+      background: linear-gradient(90deg, #026CDF, #00A8E8, #026CDF, #38BDF8, #026CDF);
+      background-size: 200% 100%;
+      animation: shimmer 3s linear infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* Hide scrollbar on horizontal strips */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-[#026CDF] selection:text-white">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-16 right-5 z-[120] flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- =====================================================================
+       1. TOP UTILITY BAR (#121212 CHARCOAL/BLACK)
+  ====================================================================== -->
+  <div class="bg-[#121212] text-white text-xs border-b border-white/10">
+    <div class="max-w-[1360px] mx-auto px-4 sm:px-6 h-9 flex items-center justify-between">
+      
+      <!-- Left: Region Switcher Dropdown ("US" + Flag) -->
+      <div class="relative">
+        <button 
+          onclick="toggleRegionDropdown()" 
+          id="region-btn"
+          class="flex items-center gap-1.5 font-semibold text-white/90 hover:text-white py-1 focus:outline-none"
+        >
+          <span id="current-region-flag" class="text-sm leading-none">🇺🇸</span>
+          <span id="current-region-code">US</span>
+          <i data-lucide="chevron-down" class="w-3 h-3 text-white/70"></i>
+        </button>
+
+        <!-- Region Dropdown Menu -->
+        <div id="region-dropdown" class="hidden absolute left-0 mt-1.5 w-44 bg-[#1E1E1E] border border-white/15 rounded-md shadow-xl py-1 z-50">
+          <button onclick="setRegion('🇺🇸', 'US', 'New York, NY')" class="w-full px-3 py-2 text-left hover:bg-white/10 flex items-center justify-between text-xs text-white">
+            <span>🇺🇸 United States</span><span class="text-white/50">USD</span>
+          </button>
+          <button onclick="setRegion('🇬🇧', 'UK', 'London, UK')" class="w-full px-3 py-2 text-left hover:bg-white/10 flex items-center justify-between text-xs text-white">
+            <span>🇬🇧 United Kingdom</span><span class="text-white/50">GBP</span>
+          </button>
+          <button onclick="setRegion('🇨🇦', 'CA', 'Toronto, ON')" class="w-full px-3 py-2 text-left hover:bg-white/10 flex items-center justify-between text-xs text-white">
+            <span>🇨🇦 Canada</span><span class="text-white/50">CAD</span>
+          </button>
+          <button onclick="setRegion('🇳🇬', 'NG', 'Lagos, NG')" class="w-full px-3 py-2 text-left hover:bg-white/10 flex items-center justify-between text-xs text-white">
+            <span>🇳🇬 Nigeria</span><span class="text-white/50">NGN</span>
+          </button>
+          <button onclick="setRegion('🇦🇺', 'AU', 'Sydney, AU')" class="w-full px-3 py-2 text-left hover:bg-white/10 flex items-center justify-between text-xs text-white">
+            <span>🇦🇺 Australia</span><span class="text-white/50">AUD</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Hotels, Sell, Gift Cards, Help, VIP, PayPal Preferred Partner -->
+      <div class="flex items-center gap-4 sm:gap-5 text-[12px] font-medium text-white/90">
+        <button onclick="showToast('Partner Hotels & Travel packages available at checkout!', 'info')" class="hidden sm:flex items-center gap-1.5 hover:text-white transition-colors">
+          <i data-lucide="bed-double" class="w-3.5 h-3.5 text-white/75"></i>
+          <span>Hotels</span>
+        </button>
+        <button onclick="openSellModal()" class="flex items-center gap-1.5 hover:text-white transition-colors">
+          <i data-lucide="tag" class="w-3.5 h-3.5 text-white/75"></i>
+          <span>Sell</span>
+        </button>
+        <button onclick="showToast('Ticketmsters Digital Gift Cards available from $25–$500.', 'info')" class="hidden md:flex items-center gap-1.5 hover:text-white transition-colors">
+          <i data-lucide="gift" class="w-3.5 h-3.5 text-white/75"></i>
+          <span>Gift Cards</span>
+        </button>
+        <button onclick="showToast('24/7 Fan Support & SafeTix™ Help Center ready.', 'info')" class="hidden sm:inline hover:text-white transition-colors">
+          Help
+        </button>
+        <button onclick="filterByVipOnly()" class="hover:text-white font-semibold transition-colors">
+          VIP
+        </button>
+        <!-- PayPal Preferred Payments Partner Badge -->
+        <div class="hidden lg:flex items-center gap-1.5 pl-3 border-l border-white/20 select-none">
+          <span class="font-extrabold italic tracking-tight text-white text-[13px]">Pay<span class="text-[#38BDF8]">Pal</span></span>
+          <span class="text-[9px] leading-tight text-white/75 uppercase tracking-wider">Preferred<br/>Payments Partner</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       2. MAIN BRAND HEADER (#026CDF ROYAL BLUE) + INTEGRATED SEARCH PILL
+  ====================================================================== -->
+  <header class="bg-[#026CDF] text-white sticky top-0 z-40 shadow-md">
+    <div class="max-w-[1360px] mx-auto px-4 sm:px-6 pt-3 pb-5">
+      
+      <!-- Top Row: Wordmark, Primary Nav Links, My Tickets & Sign In/Register -->
+      <div class="flex items-center justify-between gap-4 pb-3.5">
+        
+        <!-- Left: Bold Italic Lowercase Wordmark + Primary Nav -->
+        <div class="flex items-center gap-6 lg:gap-8">
+          <button onclick="resetAllFilters()" class="focus:outline-none text-left group">
+            <span class="font-display font-extrabold italic text-2xl sm:text-[26px] tracking-tight text-white">
+              ticketmsters<sup class="text-[11px] font-normal not-italic ml-0.5">®</sup>
+            </span>
+          </button>
+
+          <nav class="hidden md:flex items-center gap-5 lg:gap-6 text-[14px] font-semibold">
+            <button onclick="selectCategory('Concerts')" class="nav-cat-link hover:underline underline-offset-8 decoration-2 py-1 transition-all" data-cat="Concerts">Concerts</button>
+            <button onclick="selectCategory('Sports')" class="nav-cat-link hover:underline underline-offset-8 decoration-2 py-1 transition-all" data-cat="Sports">Sports</button>
+            <button onclick="selectCategory('Arts, Theater & Comedy')" class="nav-cat-link hover:underline underline-offset-8 decoration-2 py-1 transition-all" data-cat="Arts, Theater & Comedy">Arts, Theater &amp; Comedy</button>
+            <button onclick="selectCategory('Family')" class="nav-cat-link hover:underline underline-offset-8 decoration-2 py-1 transition-all" data-cat="Family">Family</button>
+            <button onclick="scrollToCities()" class="hover:underline underline-offset-8 decoration-2 py-1 transition-all">Cities</button>
+          </nav>
+        </div>
+
+        <!-- Right: My Tickets Wallet + Sign In/Register -->
+        <div class="flex items-center gap-3 sm:gap-5">
+          <button 
+            onclick="openWalletModal()" 
+            class="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-colors"
+          >
+            <i data-lucide="ticket" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">My Tickets</span>
+            <span id="wallet-badge-count" class="bg-white text-[#026CDF] font-extrabold text-[11px] px-1.5 py-0.2 rounded-full min-w-[20px] text-center">0</span>
+          </button>
+
+          <button 
+            onclick="openAuthModal()" 
+            id="auth-header-btn"
+            class="flex items-center gap-2 hover:bg-white/10 px-2.5 py-1.5 rounded-md text-xs sm:text-[14px] font-semibold transition-colors"
+          >
+            <i data-lucide="user-circle-2" class="w-5 h-5"></i>
+            <span id="auth-header-label">Sign In/Register</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Horizontal Category Bar -->
+      <div class="flex md:hidden items-center gap-4 overflow-x-auto no-scrollbar pb-3 text-xs font-semibold border-t border-white/15 pt-2.5">
+        <button onclick="selectCategory('Concerts')" class="whitespace-nowrap hover:underline">Concerts</button>
+        <button onclick="selectCategory('Sports')" class="whitespace-nowrap hover:underline">Sports</button>
+        <button onclick="selectCategory('Arts, Theater & Comedy')" class="whitespace-nowrap hover:underline">Arts, Theater &amp; Comedy</button>
+        <button onclick="selectCategory('Family')" class="whitespace-nowrap hover:underline">Family</button>
+        <button onclick="scrollToCities()" class="whitespace-nowrap hover:underline">Cities</button>
+      </div>
+
+      <!-- Integrated Full-Width White Search Pill Container -->
+      <div class="max-w-5xl mx-auto">
+        <div class="bg-white text-[#121212] rounded-md shadow-lg grid grid-cols-1 md:grid-cols-12 items-stretch divide-y md:divide-y-0 md:divide-x divide-slate-200">
+          
+          <!-- Segment 1: LOCATION -->
+          <div class="md:col-span-3 relative px-3.5 py-2 flex items-center gap-2.5 group">
+            <i data-lucide="map-pin" class="w-4 h-4 text-[#026CDF] shrink-0"></i>
+            <div class="flex-1 min-w-0">
+              <label for="search-location" class="block text-[10px] font-extrabold uppercase tracking-wider text-[#121212]">LOCATION</label>
+              <input 
+                type="text" 
+                id="search-location"
+                onfocus="showLocationPresets()"
+                oninput="handleLiveSearch()"
+                placeholder="City or Zip Code" 
+                class="w-full text-[13px] font-medium text-[#121212] placeholder-slate-400 focus:outline-none bg-transparent truncate"
+              />
+            </div>
+            <!-- Quick City Presets Popover -->
+            <div id="location-presets" class="hidden absolute left-0 top-full mt-1.5 w-60 bg-white border border-slate-200 rounded-md shadow-xl py-1.5 z-50 text-xs">
+              <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Popular Cities</div>
+              <button onclick="pickLocationPreset('')" class="w-full px-3 py-2 text-left hover:bg-blue-50 text-[#026CDF] font-semibold flex items-center gap-2">
+                <i data-lucide="globe" class="w-3.5 h-3.5"></i> All Locations
+              </button>
+              <button onclick="pickLocationPreset('New York, NY')" class="w-full px-3 py-2 text-left hover:bg-slate-100 text-slate-800">New York, NY</button>
+              <button onclick="pickLocationPreset('Los Angeles, CA')" class="w-full px-3 py-2 text-left hover:bg-slate-100 text-slate-800">Los Angeles, CA</button>
+              <button onclick="pickLocationPreset('Chicago, IL')" class="w-full px-3 py-2 text-left hover:bg-slate-100 text-slate-800">Chicago, IL</button>
+              <button onclick="pickLocationPreset('Dallas, TX')" class="w-full px-3 py-2 text-left hover:bg-slate-100 text-slate-800">Dallas, TX</button>
+              <button onclick="pickLocationPreset('Austin, TX')" class="w-full px-3 py-2 text-left hover:bg-slate-100 text-slate-800">Austin, TX</button>
+            </div>
+          </div>
+
+          <!-- Segment 2: DATES -->
+          <div class="md:col-span-3 px-3.5 py-2 flex items-center gap-2.5">
+            <i data-lucide="calendar" class="w-4 h-4 text-[#026CDF] shrink-0"></i>
+            <div class="flex-1 min-w-0">
+              <label for="search-dates" class="block text-[10px] font-extrabold uppercase tracking-wider text-[#121212]">DATES</label>
+              <select 
+                id="search-dates"
+                onchange="handleLiveSearch()"
+                class="w-full text-[13px] font-medium text-[#121212] bg-transparent focus:outline-none cursor-pointer pr-2"
+              >
+                <option value="ALL">All Dates</option>
+                <option value="WEEKEND">This Weekend</option>
+                <option value="NEXT30">Next 30 Days</option>
+                <option value="2027">2027 Tour Dates</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Segment 3: SEARCH + Royal Blue Search Button -->
+          <div class="md:col-span-6 p-1.5 pl-3.5 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 flex-1 min-w-0">
+              <i data-lucide="search" class="w-4 h-4 text-[#026CDF] shrink-0"></i>
+              <div class="flex-1 min-w-0">
+                <label for="search-query" class="block text-[10px] font-extrabold uppercase tracking-wider text-[#121212]">SEARCH</label>
+                <input 
+                  type="text" 
+                  id="search-query"
+                  oninput="handleLiveSearch()"
+                  placeholder="Artist, Event or Venue" 
+                  class="w-full text-[13px] font-medium text-[#121212] placeholder-slate-400 focus:outline-none bg-transparent truncate"
+                />
+              </div>
+            </div>
+            <button 
+              onclick="executeSearchScroll()" 
+              class="bg-[#026CDF] hover:bg-[#0152AD] text-white font-bold text-sm px-5 py-2.5 rounded-[4px] transition-colors shrink-0 shadow-sm"
+            >
+              Search
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       3. DARK HERO BENTO SHOWCASE GRID (#121212 BACKGROUND)
+          Mirrors the exact Ticketmaster 50% Left / 50% Right 2x2 Bento Layout
+  ====================================================================== -->
+  <section class="bg-[#121212] text-white py-6 sm:py-8 border-b border-neutral-800">
+    <div class="max-w-[1360px] mx-auto px-4 sm:px-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        
+        <!-- LEFT 50% (6 cols): LARGE FEATURE CARD ("Start making your list early.") -->
+        <div 
+          onclick="filterByBlackFridayDeals()" 
+          class="lg:col-span-6 cursor-pointer group relative bg-[#181818] hover:bg-[#1E1E1E] border border-white/10 rounded-[4px] overflow-hidden min-h-[360px] sm:min-h-[430px] p-6 sm:p-8 flex flex-col justify-between transition-all"
+        >
+          <!-- Center Clinking Glasses & Blue Ribbon Graphic Illustration -->
+          <div class="flex-1 flex items-center justify-center py-4">
+            <svg class="w-56 h-56 sm:w-64 sm:h-64 group-hover:scale-105 transition-transform duration-500" viewBox="0 0 260 240" fill="none">
+              <!-- Royal Blue Gift Ribbon Bow (Top Right) -->
+              <g transform="translate(155, 22)">
+                <path d="M35 30 C12 8, 2 22, 14 38 C22 48, 32 38, 35 30 Z" fill="#026CDF"/>
+                <path d="M35 30 C58 8, 68 22, 56 38 C48 48, 38 38, 35 30 Z" fill="#026CDF"/>
+                <path d="M31 34 L16 68 L28 63 L35 72 L35 34 Z" fill="#026CDF"/>
+                <path d="M39 34 L54 68 L42 63 L35 72 L35 34 Z" fill="#0152AD"/>
+                <circle cx="35" cy="30" r="8" fill="#FFFFFF"/>
+              </g>
+              <!-- Left Toast Champagne/Cocktail Glass -->
+              <g transform="translate(46, 82) rotate(-14)">
+                <path d="M12 0 H76 L72 22 C69 40, 56 48, 44 48 C32 48, 19 40, 16 22 Z" fill="#E5E7EB"/>
+                <rect x="41" y="47" width="6" height="44" fill="#E5E7EB"/>
+                <ellipse cx="44" cy="92" rx="22" ry="5" fill="#E5E7EB"/>
+              </g>
+              <!-- Right Toast Champagne/Cocktail Glass -->
+              <g transform="translate(115, 108) rotate(12)">
+                <path d="M12 0 H76 L72 22 C69 40, 56 48, 44 48 C32 48, 19 40, 16 22 Z" fill="#F3F4F6"/>
+                <rect x="41" y="47" width="6" height="44" fill="#F3F4F6"/>
+                <ellipse cx="44" cy="92" rx="22" ry="5" fill="#F3F4F6"/>
+              </g>
+            </svg>
+          </div>
+
+          <!-- Bottom Left Copy + Signature Royal Blue Underline Bar -->
+          <div class="space-y-2.5 z-10">
+            <p class="text-[11px] sm:text-xs font-extrabold uppercase tracking-[0.08em] text-white/90">
+              TICKET DEALS ARRIVE ON BLACK FRIDAY.
+            </p>
+            <h1 class="font-display font-extrabold text-3xl sm:text-4xl lg:text-[42px] leading-[1.08] tracking-tight text-white">
+              Start making your list <br class="hidden sm:inline"/>early.
+            </h1>
+            <div class="pt-1">
+              <div class="w-24 h-1.5 bg-[#026CDF] group-hover:w-36 transition-all duration-300"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT 50% (6 cols): 2x2 GRID OF 4 SHOWCASE CARDS -->
+        <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          <!-- Bento Card 1 (Top-Left): ROLLING LOUD: THE MOVIE -->
+          <div 
+            onclick="openSeatModal('evt-rolling-loud')" 
+            class="cursor-pointer group bg-[#181818] hover:bg-[#202020] border border-white/10 rounded-[4px] overflow-hidden flex flex-col justify-between transition-all"
+          >
+            <div class="relative h-36 sm:h-32 overflow-hidden bg-gradient-to-br from-emerald-900 via-lime-950 to-zinc-900 p-3 flex items-end">
+              <!-- Stylized Concert Film Poster Graphic -->
+              <svg class="absolute inset-0 w-full h-full opacity-75 group-hover:scale-105 transition-transform duration-500" viewBox="0 0 320 150" fill="none">
+                <defs>
+                  <radialGradient id="rlGlow" cx="70%" cy="30%" r="75%">
+                    <stop offset="0%" stop-color="#84CC16" stop-opacity="0.5"/>
+                    <stop offset="60%" stop-color="#14532D" stop-opacity="0.4"/>
+                    <stop offset="100%" stop-color="#09090B" stop-opacity="0.9"/>
+                  </radialGradient>
+                </defs>
+                <rect width="320" height="150" fill="url(#rlGlow)"/>
+                <circle cx="235" cy="45" r="38" fill="#FACC15" fill-opacity="0.22"/>
+                <circle cx="275" cy="85" r="30" fill="#38BDF8" fill-opacity="0.2"/>
+                <text x="20" y="72" fill="#FEF08A" font-family="Plus Jakarta Sans, sans-serif" font-style="italic" font-weight="800" font-size="26">Rolling</text>
+                <text x="38" y="98" fill="#FFFFFF" font-family="Plus Jakarta Sans, sans-serif" font-style="italic" font-weight="800" font-size="26">Loud</text>
+                <text x="42" y="114" fill="#A3E635" font-family="Inter, sans-serif" font-weight="800" font-size="9" letter-spacing="2">THE MOVIE</text>
+              </svg>
+              <span class="relative z-10 px-2 py-0.5 bg-black/75 text-[10px] font-extrabold uppercase tracking-wider text-white">
+                NOW ON DEMAND
+              </span>
+            </div>
+            <div class="p-3.5 flex-1 flex flex-col justify-center">
+              <h2 class="font-display font-extrabold text-base sm:text-[17px] uppercase tracking-tight text-white group-hover:text-[#38BDF8] transition-colors">
+                ROLLING LOUD: THE MOVIE
+              </h2>
+            </div>
+          </div>
+
+          <!-- Bento Card 2 (Top-Right): Browse Available VIP Packages -->
+          <div 
+            onclick="filterByVipOnly()" 
+            class="cursor-pointer group bg-[#181818] hover:bg-[#202020] border border-white/10 rounded-[4px] overflow-hidden flex flex-col justify-between transition-all"
+          >
+            <div class="relative h-36 sm:h-32 overflow-hidden bg-gradient-to-r from-rose-950 via-purple-950 to-slate-950 p-3 flex items-center justify-between">
+              <!-- VIP Velvet Rope & Pass Illustration -->
+              <div class="relative z-10 flex items-center gap-2.5">
+                <div class="w-12 h-16 rounded border border-pink-400/50 bg-gradient-to-b from-pink-600/40 to-purple-900/80 backdrop-blur-sm flex flex-col items-center justify-center shadow-lg">
+                  <span class="text-[8px] font-bold tracking-widest text-pink-200">ALL ACCESS</span>
+                  <span class="font-display font-extrabold text-sm text-white">VIP</span>
+                </div>
+              </div>
+              <div class="relative z-10 text-right max-w-[165px]">
+                <p class="font-display font-extrabold text-[11px] leading-tight uppercase text-white">
+                  FEEL THE PERFORMANCE, LIVE THE MOMENT AS A VIP.
+                </p>
+                <span class="inline-block mt-1.5 px-2 py-0.5 bg-[#026CDF] text-white text-[10px] font-bold rounded-[2px]">
+                  Browse Packages
+                </span>
+              </div>
+            </div>
+            <div class="p-3.5 flex-1 flex flex-col justify-center">
+              <p class="text-[10px] font-bold uppercase tracking-wider text-white/70 truncate">
+                MEET &amp; GREETS, SPECIAL ACCESS AND ...
+              </p>
+              <h2 class="font-display font-extrabold text-base sm:text-[17px] text-white group-hover:text-[#38BDF8] transition-colors mt-0.5">
+                Browse Available VIP Packages
+              </h2>
+            </div>
+          </div>
+
+          <!-- Bento Card 3 (Bottom-Left): Luke Combs (COUNTRY) -->
+          <div 
+            onclick="openSeatModal('evt-luke-combs')" 
+            class="cursor-pointer group bg-[#181818] hover:bg-[#202020] border border-white/10 rounded-[4px] overflow-hidden flex flex-col justify-between transition-all"
+          >
+            <div class="relative h-36 sm:h-32 overflow-hidden bg-gradient-to-tr from-slate-950 via-sky-900 to-amber-900/60 p-3 flex items-end">
+              <!-- Acoustic Stage Spotlight SVG -->
+              <svg class="absolute inset-0 w-full h-full opacity-80 group-hover:scale-105 transition-transform duration-500" viewBox="0 0 320 150" fill="none">
+                <polygon points="60,0 140,150 0,150" fill="rgba(56,189,248,0.18)"/>
+                <polygon points="240,0 320,150 170,150" fill="rgba(245,158,11,0.18)"/>
+                <circle cx="160" cy="76" r="34" fill="#92400E" stroke="#FBBF24" stroke-width="2"/>
+                <circle cx="160" cy="76" r="11" fill="#1C1917"/>
+                <line x1="160" y1="20" x2="160" y2="132" stroke="#FDE68A" stroke-width="2"/>
+              </svg>
+              <span class="relative z-10 px-2 py-0.5 bg-black/75 text-[10px] font-extrabold uppercase tracking-wider text-white">
+                COUNTRY
+              </span>
+            </div>
+            <div class="p-3.5 flex-1 flex flex-col justify-center">
+              <h2 class="font-display font-extrabold text-base sm:text-[17px] text-white group-hover:text-[#38BDF8] transition-colors">
+                Luke Combs
+              </h2>
+            </div>
+          </div>
+
+          <!-- Bento Card 4 (Bottom-Right): Trans-Siberian Orchestra (ROCK) -->
+          <div 
+            onclick="openSeatModal('evt-tso')" 
+            class="cursor-pointer group bg-[#181818] hover:bg-[#202020] border border-white/10 rounded-[4px] overflow-hidden flex flex-col justify-between transition-all"
+          >
+            <div class="relative h-36 sm:h-32 overflow-hidden bg-gradient-to-tr from-zinc-950 via-amber-700 to-orange-500 p-3 flex items-end">
+              <!-- Pyrotechnic Arena Stage SVG -->
+              <svg class="absolute inset-0 w-full h-full opacity-85 group-hover:scale-105 transition-transform duration-500" viewBox="0 0 320 150" fill="none">
+                <polygon points="160,15 40,150 280,150" fill="rgba(251,191,36,0.28)"/>
+                <text x="160" y="54" text-anchor="middle" fill="#FEF3C7" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="16" letter-spacing="1">TRANS-SIBERIAN</text>
+                <text x="160" y="72" text-anchor="middle" fill="#FDE68A" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="14" letter-spacing="2">ORCHESTRA</text>
+                <rect x="65" y="102" width="190" height="6" fill="#F59E0B"/>
+              </svg>
+              <span class="relative z-10 px-2 py-0.5 bg-black/75 text-[10px] font-extrabold uppercase tracking-wider text-white">
+                ROCK
+              </span>
+            </div>
+            <div class="p-3.5 flex-1 flex flex-col justify-center">
+              <h2 class="font-display font-extrabold text-base sm:text-[17px] text-white group-hover:text-[#38BDF8] transition-colors">
+                Trans-Siberian Orchestra
+              </h2>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       4. LIGHT HOMEPAGE SECTIONS BELOW THE FOLD (#FFFFFF & #F6F6F6)
+  ====================================================================== -->
+  <main class="flex-1 bg-white">
+    
+    <!-- Section A: Trending Searches Pill Bar -->
+    <section class="border-b border-slate-200 bg-[#F6F6F6]">
+      <div class="max-w-[1360px] mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center gap-2.5">
+        <span class="text-xs font-extrabold uppercase tracking-wider text-[#121212] mr-1 flex items-center gap-1.5">
+          <i data-lucide="trending-up" class="w-4 h-4 text-[#026CDF]"></i>
+          Trending Searches:
+        </span>
+        <button onclick="quickTagSearch('Luke Combs')" class="px-3 py-1 rounded-full bg-white hover:bg-[#026CDF] text-[#121212] hover:text-white border border-slate-300 text-xs font-semibold transition-colors">Luke Combs</button>
+        <button onclick="quickTagSearch('Trans-Siberian Orchestra')" class="px-3 py-1 rounded-full bg-white hover:bg-[#026CDF] text-[#121212] hover:text-white border border-slate-300 text-xs font-semibold transition-colors">Trans-Siberian Orchestra</button>
+        <button onclick="quickTagSearch('Lakers')" class="px-3 py-1 rounded-full bg-white hover:bg-[#026CDF] text-[#121212] hover:text-white border border-slate-300 text-xs font-semibold transition-colors">NBA Basketball</button>
+        <button onclick="quickTagSearch('Hamilton')" class="px-3 py-1 rounded-full bg-white hover:bg-[#026CDF] text-[#121212] hover:text-white border border-slate-300 text-xs font-semibold transition-colors">Hamilton</button>
+        <button onclick="quickTagSearch('The Weeknd')" class="px-3 py-1 rounded-full bg-white hover:bg-[#026CDF] text-[#121212] hover:text-white border border-slate-300 text-xs font-semibold transition-colors">The Weeknd</button>
+        <button onclick="quickTagSearch('Kevin Hart')" class="px-3 py-1 rounded-full bg-white hover:bg-[#026CDF] text-[#121212] hover:text-white border border-slate-300 text-xs font-semibold transition-colors">Kevin Hart</button>
+        <button onclick="quickTagSearch('Disney')" class="px-3 py-1 rounded-full bg-white hover:bg-[#026CDF] text-[#121212] hover:text-white border border-slate-300 text-xs font-semibold transition-colors">Disney On Ice</button>
+      </div>
+    </section>
+
+    <!-- Section B: Browse by Category Visual Cards -->
+    <section class="max-w-[1360px] mx-auto px-4 sm:px-6 pt-8 pb-4">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-display font-extrabold text-xl sm:text-2xl text-[#121212] tracking-tight">Browse by Category</h2>
+        <button onclick="resetAllFilters()" class="text-xs sm:text-sm font-bold text-[#026CDF] hover:underline">View All Events</button>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5 sm:gap-4">
+        <div onclick="selectCategory('Concerts')" class="cursor-pointer group relative h-28 sm:h-32 rounded-md overflow-hidden bg-gradient-to-br from-blue-700 to-indigo-950 p-4 flex flex-col justify-end shadow-sm">
+          <i data-lucide="music" class="w-14 h-14 text-white/15 absolute right-3 top-3 group-hover:scale-110 transition-transform"></i>
+          <span class="font-display font-extrabold text-base sm:text-lg text-white group-hover:underline">Concerts</span>
+          <span class="text-[11px] text-blue-200 font-medium">Tours, Festivals &amp; Club Shows</span>
+        </div>
+
+        <div onclick="selectCategory('Sports')" class="cursor-pointer group relative h-28 sm:h-32 rounded-md overflow-hidden bg-gradient-to-br from-emerald-700 to-slate-900 p-4 flex flex-col justify-end shadow-sm">
+          <i data-lucide="trophy" class="w-14 h-14 text-white/15 absolute right-3 top-3 group-hover:scale-110 transition-transform"></i>
+          <span class="font-display font-extrabold text-base sm:text-lg text-white group-hover:underline">Sports</span>
+          <span class="text-[11px] text-emerald-200 font-medium">NBA, NFL, NHL, MLB &amp; Soccer</span>
+        </div>
+
+        <div onclick="selectCategory('Arts, Theater & Comedy')" class="cursor-pointer group relative h-28 sm:h-32 rounded-md overflow-hidden bg-gradient-to-br from-rose-700 to-purple-950 p-4 flex flex-col justify-end shadow-sm">
+          <i data-lucide="drama" class="w-14 h-14 text-white/15 absolute right-3 top-3 group-hover:scale-110 transition-transform"></i>
+          <span class="font-display font-extrabold text-base sm:text-lg text-white group-hover:underline">Arts, Theater &amp; Comedy</span>
+          <span class="text-[11px] text-rose-200 font-medium">Broadway, Stand-Up &amp; Ballet</span>
+        </div>
+
+        <div onclick="selectCategory('Family')" class="cursor-pointer group relative h-28 sm:h-32 rounded-md overflow-hidden bg-gradient-to-br from-amber-600 to-orange-950 p-4 flex flex-col justify-end shadow-sm">
+          <i data-lucide="sparkles" class="w-14 h-14 text-white/15 absolute right-3 top-3 group-hover:scale-110 transition-transform"></i>
+          <span class="font-display font-extrabold text-base sm:text-lg text-white group-hover:underline">Family</span>
+          <span class="text-[11px] text-amber-200 font-medium">Ice Shows, Circus &amp; Kids Live</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section C: Popular Near You / Presales & Onsales Event Rows -->
+    <section id="events-listing-section" class="max-w-[1360px] mx-auto px-4 sm:px-6 py-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 id="events-section-title" class="font-display font-extrabold text-xl sm:text-2xl text-[#121212]">Popular Near You</h2>
+            <span id="active-filter-badge" class="hidden px-2.5 py-0.5 rounded-full bg-blue-100 text-[#026CDF] text-xs font-bold">Filtered</span>
+          </div>
+          <p id="events-section-subtitle" class="text-xs sm:text-sm text-[#595959] mt-0.5">Verified Primary &amp; Fan-to-Fan Resale Tickets</p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <select id="sort-events-select" onchange="renderEventsList()" class="bg-white border border-slate-300 rounded-[4px] px-3 py-2 text-xs sm:text-sm font-semibold text-[#121212] focus:outline-none focus:border-[#026CDF]">
+            <option value="featured">Sort: Recommended</option>
+            <option value="date">Date: Soonest</option>
+            <option value="price-low">Price: Lowest First</option>
+            <option value="price-high">Price: Highest First</option>
+          </select>
+          <button onclick="resetAllFilters()" class="px-3 py-2 rounded-[4px] border border-slate-300 hover:bg-slate-100 text-xs sm:text-sm font-semibold text-[#121212]">
+            Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Ticketmaster Style Event Rows Container -->
+      <div id="events-rows-container" class="divide-y divide-slate-200 mt-2">
+        <!-- Populated dynamically via JS -->
+      </div>
+
+      <!-- Empty Results State -->
+      <div id="empty-events-state" class="hidden text-center py-14 px-4 bg-[#F6F6F6] rounded-md border border-slate-200 mt-4">
+        <i data-lucide="search-x" class="w-10 h-10 text-slate-400 mx-auto mb-3"></i>
+        <h3 class="font-display font-bold text-lg text-[#121212]">No events match your current search</h3>
+        <p class="text-sm text-[#595959] max-w-md mx-auto mt-1">Try adjusting your location, date range, or search keyword to discover more live events.</p>
+        <button onclick="resetAllFilters()" class="mt-4 px-5 py-2.5 bg-[#026CDF] hover:bg-[#0152AD] text-white text-sm font-bold rounded-[4px]">
+          Show All Events
+        </button>
+      </div>
+    </section>
+
+    <!-- Section D: Browse by Popular Cities -->
+    <section id="cities-section" class="bg-[#F6F6F6] border-t border-slate-200 py-10">
+      <div class="max-w-[1360px] mx-auto px-4 sm:px-6">
+        <h2 class="font-display font-extrabold text-xl text-[#121212] mb-4">Explore Top Live Event Cities</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          <button onclick="pickLocationPreset('New York, NY')" class="p-3.5 bg-white hover:border-[#026CDF] border border-slate-200 rounded-[4px] text-left transition-all group">
+            <span class="block font-bold text-sm text-[#121212] group-hover:text-[#026CDF]">New York</span>
+            <span class="text-xs text-[#595959]">MSG &amp; Broadway</span>
+          </button>
+          <button onclick="pickLocationPreset('Los Angeles, CA')" class="p-3.5 bg-white hover:border-[#026CDF] border border-slate-200 rounded-[4px] text-left transition-all group">
+            <span class="block font-bold text-sm text-[#121212] group-hover:text-[#026CDF]">Los Angeles</span>
+            <span class="text-xs text-[#595959]">SoFi &amp; Crypto.com</span>
+          </button>
+          <button onclick="pickLocationPreset('Chicago, IL')" class="p-3.5 bg-white hover:border-[#026CDF] border border-slate-200 rounded-[4px] text-left transition-all group">
+            <span class="block font-bold text-sm text-[#121212] group-hover:text-[#026CDF]">Chicago</span>
+            <span class="text-xs text-[#595959]">United Center</span>
+          </button>
+          <button onclick="pickLocationPreset('Dallas, TX')" class="p-3.5 bg-white hover:border-[#026CDF] border border-slate-200 rounded-[4px] text-left transition-all group">
+            <span class="block font-bold text-sm text-[#121212] group-hover:text-[#026CDF]">Dallas</span>
+            <span class="text-xs text-[#595959]">AT&amp;T Stadium</span>
+          </button>
+          <button onclick="pickLocationPreset('Nashville, TN')" class="p-3.5 bg-white hover:border-[#026CDF] border border-slate-200 rounded-[4px] text-left transition-all group">
+            <span class="block font-bold text-sm text-[#121212] group-hover:text-[#026CDF]">Nashville</span>
+            <span class="text-xs text-[#595959]">Bridgestone Arena</span>
+          </button>
+          <button onclick="pickLocationPreset('Austin, TX')" class="p-3.5 bg-white hover:border-[#026CDF] border border-slate-200 rounded-[4px] text-left transition-all group">
+            <span class="block font-bold text-sm text-[#121212] group-hover:text-[#026CDF]">Austin</span>
+            <span class="text-xs text-[#595959]">Moody Center</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =====================================================================
+       5. FOOTER (#121212 CHARCOAL)
+  ====================================================================== -->
+  <footer class="bg-[#121212] text-white/80 text-xs border-t border-white/10">
+    <div class="max-w-[1360px] mx-auto px-4 sm:px-6 py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div>
+        <span class="font-display font-extrabold italic text-2xl text-white">ticketmsters<sup class="text-[10px] not-italic">®</sup></span>
+        <p class="mt-3 text-white/60 leading-relaxed">
+          Your official destination for verified concerts, sports, arts, theater, comedy, and VIP live experiences worldwide.
+        </p>
+      </div>
+      <div>
+        <h4 class="font-bold text-white uppercase tracking-wider mb-3">Helpful Links</h4>
+        <ul class="space-y-2 text-white/70">
+          <li><button onclick="openWalletModal()" class="hover:text-white">My Account &amp; Tickets</button></li>
+          <li><button onclick="openSellModal()" class="hover:text-white">Sell Your Tickets</button></li>
+          <li><button onclick="filterByVipOnly()" class="hover:text-white">VIP Experiences</button></li>
+          <li><button onclick="filterByBlackFridayDeals()" class="hover:text-white">Black Friday Ticket Deals</button></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold text-white uppercase tracking-wider mb-3">Our Network</h4>
+        <ul class="space-y-2 text-white/70">
+          <li>SafeTix™ Encrypted Entry</li>
+          <li>Verified Fan Presales</li>
+          <li>PayPal Preferred Checkout</li>
+          <li>100% Buyer Guarantee</li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold text-white uppercase tracking-wider mb-3">Live Support</h4>
+        <p class="text-white/60 mb-3">Have suggestions or need help with an order?</p>
+        <button onclick="toggleFeedbackDrawer()" class="px-4 py-2 bg-[#026CDF] hover:bg-[#0152AD] text-white font-bold rounded-[4px] transition-colors">
+          Send Feedback
+        </button>
+      </div>
+    </div>
+    <div class="border-t border-white/10 py-4 px-4 sm:px-6 max-w-[1360px] mx-auto flex flex-col sm:flex-row items-center justify-between text-white/50 gap-2">
+      <span>By continuing past this page, you agree to our Terms of Use &amp; Privacy Policy.</span>
+      <span>© 2026 Ticketmsters Entertainment, Inc. All rights reserved.</span>
+    </div>
+  </footer>
+
+  <!-- =====================================================================
+       FLOATING BOTTOM-RIGHT BLUE "t Feedback" TAB BUTTON (EXACT SCREENSHOT MATCH)
+  ====================================================================== -->
+  <button 
+    onclick="toggleFeedbackDrawer()" 
+    class="fixed bottom-0 right-5 z-40 bg-[#026CDF] hover:bg-[#0152AD] text-white font-bold text-xs px-3.5 py-2 rounded-t-[4px] shadow-lg flex items-center gap-1.5 transition-colors border border-b-0 border-white/20"
+  >
+    <span class="font-display font-extrabold italic text-sm">t</span>
+    <span>Feedback</span>
+  </button>
+
+  <!-- Feedback Drawer Modal -->
+  <div id="feedback-drawer" class="hidden fixed bottom-10 right-5 z-50 w-80 bg-white border border-slate-300 rounded-md shadow-2xl p-4 text-[#121212]">
+    <div class="flex items-center justify-between pb-2.5 border-b border-slate-200">
+      <div class="flex items-center gap-1.5">
+        <span class="w-5 h-5 rounded bg-[#026CDF] text-white font-display font-extrabold italic text-xs flex items-center justify-center">t</span>
+        <h4 class="font-bold text-sm">Share Feedback</h4>
+      </div>
+      <button onclick="toggleFeedbackDrawer()" class="text-slate-400 hover:text-slate-700">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+    <form onsubmit="submitFeedback(event)" class="mt-3 space-y-3">
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">How is your Ticketmsters experience?</label>
+        <div class="grid grid-cols-5 gap-1 text-center">
+          <button type="button" onclick="selectFeedbackScore(1)" class="fb-score-btn py-1.5 border border-slate-300 rounded text-xs font-bold hover:border-[#026CDF]">1</button>
+          <button type="button" onclick="selectFeedbackScore(2)" class="fb-score-btn py-1.5 border border-slate-300 rounded text-xs font-bold hover:border-[#026CDF]">2</button>
+          <button type="button" onclick="selectFeedbackScore(3)" class="fb-score-btn py-1.5 border border-slate-300 rounded text-xs font-bold hover:border-[#026CDF]">3</button>
+          <button type="button" onclick="selectFeedbackScore(4)" class="fb-score-btn py-1.5 border border-slate-300 rounded text-xs font-bold hover:border-[#026CDF]">4</button>
+          <button type="button" onclick="selectFeedbackScore(5)" class="fb-score-btn py-1.5 border border-[#026CDF] bg-blue-50 text-[#026CDF] rounded text-xs font-bold">5</button>
+        </div>
+      </div>
+      <div>
+        <textarea id="feedback-text" required rows="3" placeholder="Tell us what you love or what we can improve..." class="w-full border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#026CDF]"></textarea>
+      </div>
+      <button type="submit" class="w-full py-2 bg-[#026CDF] hover:bg-[#0152AD] text-white font-bold text-xs rounded-[4px]">
+        Submit Feedback
+      </button>
+    </form>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 1: INTERACTIVE STADIUM/ARENA SEAT MAP & PAYPAL/CARD CHECKOUT
+  ====================================================================== -->
+  <div id="seat-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm">
+    <div class="min-h-screen flex items-center justify-center p-2 sm:p-4">
+      <div class="relative w-full max-w-6xl bg-white text-[#121212] rounded-md shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
+        
+        <!-- Top Ticketmaster Blue Header Bar -->
+        <div class="bg-[#026CDF] text-white px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4 shrink-0">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span id="modal-event-badge" class="px-2 py-0.5 bg-white/20 text-white text-[10px] font-extrabold uppercase tracking-wider rounded-[2px]">CONCERTS</span>
+              <span id="modal-event-date" class="text-xs font-semibold text-blue-100">Sat, Dec 12 • 7:30 PM</span>
+            </div>
+            <h3 id="modal-event-title" class="font-display font-extrabold text-base sm:text-xl truncate mt-0.5">Event Title</h3>
+            <p id="modal-event-venue" class="text-xs text-blue-100 truncate">Venue • City</p>
+          </div>
+          <button onclick="closeSeatModal()" class="p-2 rounded bg-white/15 hover:bg-white/25 text-white transition-colors shrink-0">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Split Body: Left Interactive Arena Map with Live Seat Dots, Right Tier Filter & Checkout -->
+        <div class="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12">
+          
+          <!-- Left: Interactive Venue Map -->
+          <div class="lg:col-span-7 bg-[#F6F6F6] p-4 sm:p-6 border-b lg:border-b-0 lg:border-r border-slate-200 flex flex-col justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div>
+                <h4 class="font-display font-extrabold text-sm sm:text-base text-[#121212]">Interactive Venue Seat Map</h4>
+                <p class="text-xs text-[#595959]">Select a section or click individual available seat dots</p>
+              </div>
+              <div id="seat-map-pill" class="px-3 py-1 bg-white border border-slate-300 rounded-full text-xs font-bold text-[#026CDF] shadow-sm">
+                Section: VIP Floor
+              </div>
+            </div>
+
+            <!-- SVG Stadium Bowl + Live Individual Seat Dots -->
+            <div class="flex-1 flex items-center justify-center my-2 select-none">
+              <svg viewBox="0 0 640 430" class="w-full max-w-[550px] h-auto">
+                <!-- Arena Bowl Outer Ring -->
+                <rect x="18" y="14" width="604" height="402" rx="135" fill="#E2E8F0" stroke="#CBD5E1" stroke-width="2.5"/>
+                <rect x="44" y="34" width="552" height="362" rx="115" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+
+                <!-- STAGE -->
+                <rect x="200" y="38" width="240" height="48" rx="6" fill="#121212"/>
+                <rect x="245" y="86" width="150" height="18" rx="3" fill="#262626"/>
+                <text x="320" y="67" text-anchor="middle" fill="#FFFFFF" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="14" letter-spacing="3">STAGE</text>
+                <text x="320" y="98" text-anchor="middle" fill="#A3A3A3" font-family="Inter, sans-serif" font-weight="700" font-size="8" letter-spacing="1.5">THRUST</text>
+
+                <!-- TIER 0: FLOOR / PIT VIP -->
+                <g class="venue-section" data-tier-index="0" onclick="selectTier(0)">
+                  <rect x="210" y="116" width="220" height="84" rx="10" fill="#026CDF" stroke="#0152AD" stroke-width="2"/>
+                  <text x="320" y="144" text-anchor="middle" fill="#FFFFFF" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="13">FLOOR VIP / PIT</text>
+                  <text id="svg-price-0" x="320" y="162" text-anchor="middle" fill="#DBEAFE" font-family="Inter, sans-serif" font-weight="700" font-size="11">$295</text>
+                  <!-- Interactive Seat Dots Row -->
+                  <g fill="#38BDF8">
+                    <circle class="seat-dot" cx="245" cy="182" r="4.5"/><circle class="seat-dot" cx="262" cy="182" r="4.5"/>
+                    <circle class="seat-dot" cx="279" cy="182" r="4.5"/><circle class="seat-dot" cx="296" cy="182" r="4.5"/>
+                    <circle class="seat-dot" cx="313" cy="182" r="4.5"/><circle class="seat-dot" cx="330" cy="182" r="4.5"/>
+                    <circle class="seat-dot" cx="347" cy="182" r="4.5"/><circle class="seat-dot" cx="364" cy="182" r="4.5"/>
+                    <circle class="seat-dot" cx="381" cy="182" r="4.5"/><circle class="seat-dot" cx="398" cy="182" r="4.5"/>
+                  </g>
+                </g>
+
+                <!-- TIER 1: LOWER BOWL / CLUB -->
+                <g class="venue-section" data-tier-index="1" onclick="selectTier(1)">
+                  <path d="M 118 112 L 196 118 L 196 212 L 118 232 Z" fill="#3B82F6" stroke="#2563EB" stroke-width="2"/>
+                  <text x="157" y="170" text-anchor="middle" fill="#FFFFFF" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" font-size="11">SEC 101</text>
+                  <text id="svg-price-1a" x="157" y="185" text-anchor="middle" fill="#EFF6FF" font-family="Inter, sans-serif" font-weight="600" font-size="10">$175</text>
+                </g>
+                <g class="venue-section" data-tier-index="1" onclick="selectTier(1)">
+                  <path d="M 444 118 L 522 112 L 522 232 L 444 212 Z" fill="#3B82F6" stroke="#2563EB" stroke-width="2"/>
+                  <text x="483" y="170" text-anchor="middle" fill="#FFFFFF" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" font-size="11">SEC 112</text>
+                  <text id="svg-price-1b" x="483" y="185" text-anchor="middle" fill="#EFF6FF" font-family="Inter, sans-serif" font-weight="600" font-size="10">$175</text>
+                </g>
+                <g class="venue-section" data-tier-index="1" onclick="selectTier(1)">
+                  <rect x="205" y="212" width="230" height="68" rx="10" fill="#3B82F6" stroke="#2563EB" stroke-width="2"/>
+                  <text x="320" y="238" text-anchor="middle" fill="#FFFFFF" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="12">LOWER BOWL CLUB (105-108)</text>
+                  <text id="svg-price-1c" x="320" y="254" text-anchor="middle" fill="#EFF6FF" font-family="Inter, sans-serif" font-weight="700" font-size="11">$175</text>
+                  <g fill="#BFDBFE">
+                    <circle class="seat-dot" cx="250" cy="268" r="4"/><circle class="seat-dot" cx="270" cy="268" r="4"/>
+                    <circle class="seat-dot" cx="290" cy="268" r="4"/><circle class="seat-dot" cx="310" cy="268" r="4"/>
+                    <circle class="seat-dot" cx="330" cy="268" r="4"/><circle class="seat-dot" cx="350" cy="268" r="4"/>
+                    <circle class="seat-dot" cx="370" cy="268" r="4"/><circle class="seat-dot" cx="390" cy="268" r="4"/>
+                  </g>
+                </g>
+
+                <!-- TIER 2: UPPER DECK -->
+                <g class="venue-section" data-tier-index="2" onclick="selectTier(2)">
+                  <path d="M 56 122 L 106 118 L 106 246 L 68 270 Q 50 196 56 122 Z" fill="#93C5FD" stroke="#60A5FA" stroke-width="1.8"/>
+                  <text x="82" y="194" text-anchor="middle" fill="#1E3A8A" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="10" transform="rotate(-90 82 194)">UPPER 301</text>
+                </g>
+                <g class="venue-section" data-tier-index="2" onclick="selectTier(2)">
+                  <path d="M 534 118 L 584 122 Q 590 196 572 270 L 534 246 Z" fill="#93C5FD" stroke="#60A5FA" stroke-width="1.8"/>
+                  <text x="558" y="194" text-anchor="middle" fill="#1E3A8A" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="10" transform="rotate(90 558 194)">UPPER 324</text>
+                </g>
+                <g class="venue-section" data-tier-index="2" onclick="selectTier(2)">
+                  <path d="M 115 264 L 195 292 L 445 292 L 525 264 L 552 315 Q 320 408 88 315 Z" fill="#93C5FD" stroke="#60A5FA" stroke-width="1.8"/>
+                  <text x="320" y="330" text-anchor="middle" fill="#1E3A8A" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="13">UPPER DECK / GENERAL ADMISSION</text>
+                  <text id="svg-price-2" x="320" y="348" text-anchor="middle" fill="#1E40AF" font-family="Inter, sans-serif" font-weight="700" font-size="11">$89</text>
+                </g>
+              </svg>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-slate-200 text-xs font-semibold text-[#595959]">
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-[#026CDF]"></span> VIP Floor / Pit</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-[#3B82F6]"></span> Lower Bowl / Club</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-[#93C5FD]"></span> Upper Deck</span>
+            </div>
+          </div>
+
+          <!-- Right: Ticket Tier Selection & Checkout -->
+          <div class="lg:col-span-5 p-4 sm:p-6 bg-white flex flex-col justify-between">
+            
+            <!-- Step 1: Tier & Quantity -->
+            <div id="checkout-step-1" class="space-y-4">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-extrabold uppercase tracking-wider text-[#121212]">Select Ticket Type</span>
+                  <span class="text-[11px] font-bold text-[#026CDF]">Verified Tickets</span>
+                </div>
+                <div id="tier-options-list" class="space-y-2.5">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+
+              <!-- Quantity Selector -->
+              <div class="flex items-center justify-between p-3 bg-[#F6F6F6] border border-slate-200 rounded-[4px]">
+                <div>
+                  <p class="text-sm font-bold text-[#121212]">Number of Tickets</p>
+                  <p class="text-xs text-[#595959]">Seated together (Max 6 per order)</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button onclick="updateQuantity(-1)" class="w-8 h-8 rounded bg-white border border-slate-300 hover:border-[#026CDF] font-bold flex items-center justify-center">
+                    <i data-lucide="minus" class="w-4 h-4"></i>
+                  </button>
+                  <span id="ticket-qty-display" class="font-display font-extrabold text-base w-5 text-center">2</span>
+                  <button onclick="updateQuantity(1)" class="w-8 h-8 rounded bg-white border border-slate-300 hover:border-[#026CDF] font-bold flex items-center justify-center">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Fee Breakdown -->
+              <div class="p-3.5 bg-[#F6F6F6] border border-slate-200 rounded-[4px] space-y-1.5 text-xs">
+                <div class="flex justify-between font-semibold text-[#121212]">
+                  <span id="summary-base-label">2 × VIP Floor ($295.00)</span>
+                  <span id="summary-subtotal">$590.00</span>
+                </div>
+                <div class="flex justify-between text-[#595959]">
+                  <span>Service Fee (14%)</span>
+                  <span id="summary-service-fee">$82.60</span>
+                </div>
+                <div class="flex justify-between text-[#595959]">
+                  <span>Order Processing &amp; Facility Fee</span>
+                  <span id="summary-facility-fee">$12.00</span>
+                </div>
+                <div class="pt-2 border-t border-slate-300 flex justify-between items-center text-sm font-extrabold text-[#121212]">
+                  <span>Total (incl. fees)</span>
+                  <span id="summary-total" class="text-lg text-[#026CDF]">$684.60</span>
+                </div>
+              </div>
+
+              <button 
+                onclick="goToCheckoutStep2()" 
+                class="w-full py-3 px-4 bg-[#026CDF] hover:bg-[#0152AD] text-white font-bold text-sm rounded-[4px] shadow transition-colors flex items-center justify-center gap-2"
+              >
+                <span>Next: Checkout</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <!-- Step 2: PayPal / Card Checkout -->
+            <form id="checkout-step-2" onsubmit="completeBooking(event)" class="hidden space-y-4">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+                <button type="button" onclick="goToCheckoutStep1()" class="text-xs font-bold text-[#026CDF] hover:underline flex items-center gap-1">
+                  <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Change Seats
+                </button>
+                <span class="text-xs font-bold text-[#595959]">SafeTix™ Mobile Delivery</span>
+              </div>
+
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-xs font-bold text-[#121212] mb-1">Full Name</label>
+                  <input type="text" id="attendee-name" required placeholder="Alex Morgan" class="w-full border border-slate-300 rounded-[4px] px-3 py-2 text-sm focus:outline-none focus:border-[#026CDF]"/>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-[#121212] mb-1">Email for Mobile Tickets</label>
+                  <input type="email" id="attendee-email" required placeholder="alex@example.com" class="w-full border border-slate-300 rounded-[4px] px-3 py-2 text-sm focus:outline-none focus:border-[#026CDF]"/>
+                </div>
+
+                <!-- Payment Method Selector (PayPal Preferred Partner or Card) -->
+                <div>
+                  <label class="block text-xs font-bold text-[#121212] mb-1.5">Payment Method</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button type="button" id="pay-method-paypal" onclick="selectPaymentMethod('PayPal')" class="py-2.5 px-3 border-2 border-[#026CDF] bg-blue-50/70 rounded-[4px] flex items-center justify-center gap-1.5 font-extrabold italic text-sm text-[#003087]">
+                      <span>Pay<span class="text-[#0079C1]">Pal</span></span>
+                    </button>
+                    <button type="button" id="pay-method-card" onclick="selectPaymentMethod('Card')" class="py-2.5 px-3 border border-slate-300 bg-white rounded-[4px] flex items-center justify-center gap-1.5 font-bold text-xs text-[#121212]">
+                      <i data-lucide="credit-card" class="w-4 h-4 text-[#026CDF]"></i>
+                      <span>Credit / Debit Card</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-3 bg-[#F6F6F6] border border-slate-200 rounded-[4px] flex items-center justify-between">
+                <div>
+                  <p id="checkout-final-tier" class="text-xs font-bold text-[#121212]">2 × VIP Floor</p>
+                  <p id="checkout-pay-label" class="text-[11px] text-[#595959]">Paying via PayPal Preferred Checkout</p>
+                </div>
+                <p id="checkout-final-total" class="font-display font-extrabold text-lg text-[#026CDF]">$684.60</p>
+              </div>
+
+              <button type="submit" class="w-full py-3 px-4 bg-[#026CDF] hover:bg-[#0152AD] text-white font-bold text-sm rounded-[4px] shadow transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="lock" class="w-4 h-4"></i>
+                <span>Place Order</span>
+              </button>
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 2: DIGITAL TICKET WALLET ("MY TICKETS")
+  ====================================================================== -->
+  <div id="wallet-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm">
+    <div class="min-h-screen flex items-center justify-center p-3 sm:p-6">
+      <div class="relative w-full max-w-4xl bg-white text-[#121212] rounded-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="bg-[#026CDF] text-white px-5 py-4 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="ticket" class="w-5 h-5"></i>
+            <div>
+              <h3 class="font-display font-extrabold text-lg">My Tickets — SafeTix™ Wallet</h3>
+              <p class="text-xs text-blue-100">Scan dynamic QR code at venue entry gates</p>
+            </div>
+          </div>
+          <button onclick="closeWalletModal()" class="p-1.5 rounded bg-white/15 hover:bg-white/25 text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <div id="wallet-content" class="p-5 sm:p-6 overflow-y-auto space-y-5 bg-[#F6F6F6]">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 3: SELL TICKETS ("SELL" TOP UTILITY LINK)
+  ====================================================================== -->
+  <div id="sell-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="relative w-full max-w-lg bg-white text-[#121212] rounded-md shadow-2xl overflow-hidden">
+        <div class="bg-[#121212] text-white px-5 py-4 flex items-center justify-between">
+          <div>
+            <h3 class="font-display font-extrabold text-lg">Sell Your Tickets on Ticketmsters®</h3>
+            <p class="text-xs text-white/70">List verified fan-to-fan resale tickets in seconds</p>
+          </div>
+          <button onclick="closeSellModal()" class="text-white/70 hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <form onsubmit="submitResaleListing(event)" class="p-5 space-y-3.5 text-sm">
+          <div>
+            <label class="block text-xs font-bold mb-1">Artist / Event Name</label>
+            <input type="text" id="sell-artist" required placeholder="e.g. Luke Combs" class="w-full border border-slate-300 rounded-[4px] px-3 py-2 text-sm focus:outline-none focus:border-[#026CDF]"/>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold mb-1">Venue</label>
+              <input type="text" id="sell-venue" required placeholder="e.g. SoFi Stadium" class="w-full border border-slate-300 rounded-[4px] px-3 py-2 text-sm focus:outline-none focus:border-[#026CDF]"/>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">City</label>
+              <input type="text" id="sell-city" required placeholder="e.g. Los Angeles, CA" class="w-full border border-slate-300 rounded-[4px] px-3 py-2 text-sm focus:outline-none focus:border-[#026CDF]"/>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold mb-1">Category</label>
+              <select id="sell-category" class="w-full border border-slate-300 rounded-[4px] px-2.5 py-2 text-sm">
+                <option value="Concerts">Concerts</option>
+                <option value="Sports">Sports</option>
+                <option value="Arts, Theater & Comedy">Arts, Theater &amp; Comedy</option>
+                <option value="Family">Family</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Section</label>
+              <input type="text" id="sell-section" required placeholder="SEC 104" class="w-full border border-slate-300 rounded-[4px] px-3 py-2 text-sm"/>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Price ($)</label>
+              <input type="number" id="sell-price" required min="15" max="5000" value="145" class="w-full border border-slate-300 rounded-[4px] px-3 py-2 text-sm"/>
+            </div>
+          </div>
+          <button type="submit" class="w-full py-2.5 bg-[#026CDF] hover:bg-[#0152AD] text-white font-bold rounded-[4px] transition-colors">
+            Publish Verified Resale Listing
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 4: SIGN IN / REGISTER MODAL
+  ====================================================================== -->
+  <div id="auth-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="relative w-full max-w-md bg-white text-[#121212] rounded-md shadow-2xl overflow-hidden">
+        <div class="bg-[#026CDF] text-white px-5 py-4 flex items-center justify-between">
+          <span class="font-display font-extrabold italic text-xl">ticketmsters®</span>
+          <button onclick="closeAuthModal()" class="text-white/80 hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <form onsubmit="handleAuthSubmit(event)" class="p-6 space-y-4">
+          <h3 class="font-display font-extrabold text-xl">Sign In or Create Account</h3>
+          <p class="text-xs text-[#595959]">Access your mobile tickets, Verified Fan presales, and saved payment methods.</p>
+          <div>
+            <label class="block text-xs font-bold mb-1">Your Name</label>
+            <input type="text" id="auth-name-input" required placeholder="Jordan Taylor" class="w-full border border-slate-300 rounded-[4px] px-3 py-2 text-sm focus:outline-none focus:border-[#026CDF]"/>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">Email Address</label>
+            <input type="email" id="auth-email-input" required placeholder="jordan@example.com" class="w-full border border-slate-300 rounded-[4px] px-3 py-2 text-sm focus:outline-none focus:border-[#026CDF]"/>
+          </div>
+          <button type="submit" class="w-full py-2.5 bg-[#026CDF] hover:bg-[#0152AD] text-white font-bold text-sm rounded-[4px]">
+            Continue
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       JAVASCRIPT LOGIC
+  ====================================================================== -->
+  <script>
+    // 1. COMPLETE EVENT CATALOG (Includes all Bento Hero Items + Popular Events)
+    let EVENTS_CATALOG = [
+      {
+        id: 'evt-luke-combs',
+        artist: 'Luke Combs',
+        title: 'Growin’ Up and Gettin’ Old Stadium Tour',
+        category: 'Concerts',
+        subGenre: 'COUNTRY',
+        dateISO: '2026-11-21T19:00:00',
+        monthShort: 'NOV',
+        dayNum: '21',
+        dayTime: 'Sat • 7:00 PM',
+        venue: 'Nissan Stadium',
+        city: 'Nashville, TN',
+        vipAvailable: true,
+        blackFridayDeal: true,
+        tiers: [
+          { name: 'Bootleggers VIP Pit', section: 'PIT-1', price: 285, perks: 'Early pit entry + pre-show acoustic lounge' },
+          { name: 'Lower Bowl Club', section: 'SEC 112', price: 159, perks: 'Reserved lower stadium seating' },
+          { name: 'Upper Deck Reserved', section: 'SEC 315', price: 79, perks: 'Full stadium stage view' }
+        ]
+      },
+      {
+        id: 'evt-tso',
+        artist: 'Trans-Siberian Orchestra',
+        title: 'The Lost Christmas Eve — Winter Tour',
+        category: 'Concerts',
+        subGenre: 'ROCK',
+        dateISO: '2026-11-28T19:30:00',
+        monthShort: 'NOV',
+        dayNum: '28',
+        dayTime: 'Sat • 7:30 PM',
+        venue: 'Madison Square Garden',
+        city: 'New York, NY',
+        vipAvailable: true,
+        blackFridayDeal: true,
+        tiers: [
+          { name: 'Pyro Floor VIP', section: 'FLR-B', price: 225, perks: 'Center floor + commemorative tour laminate' },
+          { name: 'Lower Bowl 100s', section: 'SEC 107', price: 129, perks: 'Prime sightline to laser & light show' },
+          { name: 'Upper Concourse', section: 'SEC 222', price: 69, perks: 'Standard arena reserved seating' }
+        ]
+      },
+      {
+        id: 'evt-rolling-loud',
+        artist: 'Rolling Loud: The Movie (Live Premiere + Concert)',
+        title: 'Special Screening & Surprise Headline Set',
+        category: 'Concerts',
+        subGenre: 'HIP-HOP / FILM',
+        dateISO: '2026-12-04T20:00:00',
+        monthShort: 'DEC',
+        dayNum: '04',
+        dayTime: 'Fri • 8:00 PM',
+        venue: 'Kia Forum',
+        city: 'Los Angeles, CA',
+        vipAvailable: true,
+        blackFridayDeal: true,
+        tiers: [
+          { name: 'Loud Club VIP Floor', section: 'GA-VIP', price: 240, perks: 'Red carpet access + floor pit' },
+          { name: 'Lower Bowl Reserved', section: 'SEC 109', price: 135, perks: 'Lower bowl arena seat' },
+          { name: 'Upper Bowl GA', section: 'SEC 214', price: 75, perks: 'Upper arena seating' }
+        ]
+      },
+      {
+        id: 'evt-nba-lakers',
+        artist: 'Los Angeles Lakers vs. Golden State Warriors',
+        title: 'NBA Western Conference Showdown',
+        category: 'Sports',
+        subGenre: 'BASKETBALL',
+        dateISO: '2026-12-06T20:30:00',
+        monthShort: 'DEC',
+        dayNum: '06',
+        dayTime: 'Sun • 8:30 PM',
+        venue: 'Crypto.com Arena',
+        city: 'Los Angeles, CA',
+        vipAvailable: true,
+        blackFridayDeal: false,
+        tiers: [
+          { name: 'Courtside VIP Club', section: 'ROW-AA', price: 590, perks: 'Courtside tunnel lounge & hospitality' },
+          { name: 'Lower Bowl Premier', section: 'SEC 111', price: 260, perks: 'Lower sideline seat' },
+          { name: 'Upper Level 300s', section: 'SEC 304', price: 110, perks: 'Standard arena seat' }
+        ]
+      },
+      {
+        id: 'evt-hamilton',
+        artist: 'HAMILTON (Broadway)',
+        title: 'An American Musical — Evening Performance',
+        category: 'Arts, Theater & Comedy',
+        subGenre: 'MUSICAL THEATER',
+        dateISO: '2026-12-10T19:00:00',
+        monthShort: 'DEC',
+        dayNum: '10',
+        dayTime: 'Thu • 7:00 PM',
+        venue: 'Richard Rodgers Theatre',
+        city: 'New York, NY',
+        vipAvailable: true,
+        blackFridayDeal: true,
+        tiers: [
+          { name: 'Orchestra Center VIP', section: 'ORCH-C', price: 310, perks: 'Rows A-F center + souvenir Playbill' },
+          { name: 'Front Mezzanine', section: 'MEZZ-1', price: 189, perks: 'Elevated stage view' },
+          { name: 'Rear Mezzanine', section: 'MEZZ-3', price: 99, perks: 'Classic Broadway seating' }
+        ]
+      },
+      {
+        id: 'evt-weeknd',
+        artist: 'The Weeknd',
+        title: 'After Hours Til Dawn Stadium Tour',
+        category: 'Concerts',
+        subGenre: 'POP / R&B',
+        dateISO: '2026-12-12T19:30:00',
+        monthShort: 'DEC',
+        dayNum: '12',
+        dayTime: 'Sat • 7:30 PM',
+        venue: 'SoFi Stadium',
+        city: 'Los Angeles, CA',
+        vipAvailable: true,
+        blackFridayDeal: false,
+        tiers: [
+          { name: 'VIP Floor / Pit', section: 'FLOOR-A', price: 295, perks: 'Front-of-stage standing + VIP gift' },
+          { name: 'Lower Bowl Club', section: 'SEC 106', price: 175, perks: 'Padded club seat' },
+          { name: 'Upper Tier GA', section: 'SEC 312', price: 95, perks: 'Stadium upper deck' }
+        ]
+      },
+      {
+        id: 'evt-kevin-hart',
+        artist: 'Kevin Hart',
+        title: 'Acting My Age — Arena Comedy Tour',
+        category: 'Arts, Theater & Comedy',
+        subGenre: 'COMEDY',
+        dateISO: '2026-12-18T20:30:00',
+        monthShort: 'DEC',
+        dayNum: '18',
+        dayTime: 'Fri • 8:30 PM',
+        venue: 'United Center',
+        city: 'Chicago, IL',
+        vipAvailable: true,
+        blackFridayDeal: true,
+        tiers: [
+          { name: 'Diamond Floor VIP', section: 'FLR-2', price: 230, perks: 'First 10 rows center floor' },
+          { name: 'Lower Bowl 100s', section: 'SEC 108', price: 125, perks: 'Close-up sightline' },
+          { name: 'Upper Bowl 300s', section: 'SEC 318', price: 69, perks: 'Full arena view' }
+        ]
+      },
+      {
+        id: 'evt-disney-ice',
+        artist: 'Disney On Ice: Mickey’s Search Party',
+        title: 'Family Spectacular Live on Ice',
+        category: 'Family',
+        subGenre: 'FAMILY SHOW',
+        dateISO: '2027-01-09T14:00:00',
+        monthShort: 'JAN',
+        dayNum: '09',
+        dayTime: 'Sat • 2:00 PM',
+        venue: 'Moody Center',
+        city: 'Austin, TX',
+        vipAvailable: false,
+        blackFridayDeal: true,
+        tiers: [
+          { name: 'Rinkside VIP Front Row', section: 'RINK-A', price: 145, perks: 'Front row ice-level family seating' },
+          { name: 'Lower Bowl Family', section: 'SEC 104', price: 78, perks: 'Great elevated rink view' },
+          { name: 'Upper Concourse', section: 'SEC 210', price: 42, perks: 'Budget-friendly family seating' }
+        ]
+      }
+    ];
+
+    // 2. STATE
+    let appState = {
+      category: 'ALL',
+      vipOnly: false,
+      blackFridayOnly: false,
+      locationFilter: '',
+      dateFilter: 'ALL',
+      searchQuery: '',
+      activeEvent: null,
+      selectedTierIndex: 0,
+      quantity: 2,
+      paymentMethod: 'PayPal',
+      user: null,
+      walletOrders: []
+    };
+
+    // Load saved wallet & user on startup
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        const savedWallet = localStorage.getItem('tm_wallet_v2');
+        if (savedWallet) appState.walletOrders = JSON.parse(savedWallet);
+        const savedUser = localStorage.getItem('tm_user_v2');
+        if (savedUser) {
+          appState.user = JSON.parse(savedUser);
+          updateAuthHeader();
+        }
+      } catch (e) {}
+
+      updateWalletBadge();
+      renderEventsList();
+      lucide.createIcons();
+
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#region-btn') && !e.target.closest('#region-dropdown')) {
+          document.getElementById('region-dropdown').classList.add('hidden');
+        }
+        if (!e.target.closest('#search-location') && !e.target.closest('#location-presets')) {
+          document.getElementById('location-presets').classList.add('hidden');
+        }
+      });
+    });
+
+    // 3. TOP UTILITY & HEADER INTERACTIONS
+    function toggleRegionDropdown() {
+      document.getElementById('region-dropdown').classList.toggle('hidden');
+    }
+
+    function setRegion(flag, code, defaultCity) {
+      document.getElementById('current-region-flag').textContent = flag;
+      document.getElementById('current-region-code').textContent = code;
+      document.getElementById('region-dropdown').classList.add('hidden');
+      showToast(`Region switched to ${code} (${defaultCity})`, 'info');
+    }
+
+    function showLocationPresets() {
+      document.getElementById('location-presets').classList.remove('hidden');
+    }
+
+    function pickLocationPreset(city) {
+      document.getElementById('search-location').value = city;
+      document.getElementById('location-presets').classList.add('hidden');
+      handleLiveSearch();
+      if (city) scrollToEvents();
+    }
+
+    function handleLiveSearch() {
+      appState.locationFilter = document.getElementById('search-location').value.trim().toLowerCase();
+      appState.dateFilter = document.getElementById('search-dates').value;
+      appState.searchQuery = document.getElementById('search-query').value.trim().toLowerCase();
+      renderEventsList();
+    }
+
+    function executeSearchScroll() {
+      handleLiveSearch();
+      scrollToEvents();
+    }
+
+    function quickTagSearch(term) {
+      document.getElementById('search-query').value = term;
+      appState.category = 'ALL';
+      appState.vipOnly = false;
+      appState.blackFridayOnly = false;
+      handleLiveSearch();
+      scrollToEvents();
+    }
+
+    function selectCategory(cat) {
+      appState.category = cat;
+      appState.vipOnly = false;
+      appState.blackFridayOnly = false;
+      renderEventsList();
+      scrollToEvents();
+    }
+
+    function filterByVipOnly() {
+      appState.vipOnly = true;
+      appState.blackFridayOnly = false;
+      appState.category = 'ALL';
+      renderEventsList();
+      scrollToEvents();
+      showToast('Showing events with Verified VIP Packages & Meet & Greets', 'info');
+    }
+
+    function filterByBlackFridayDeals() {
+      appState.blackFridayOnly = true;
+      appState.vipOnly = false;
+      appState.category = 'ALL';
+      renderEventsList();
+      scrollToEvents();
+      showToast('Showing Early Black Friday Ticket Deals!', 'info');
+    }
+
+    function resetAllFilters() {
+      appState.category = 'ALL';
+      appState.vipOnly = false;
+      appState.blackFridayOnly = false;
+      appState.locationFilter = '';
+      appState.dateFilter = 'ALL';
+      appState.searchQuery = '';
+      document.getElementById('search-location').value = '';
+      document.getElementById('search-dates').value = 'ALL';
+      document.getElementById('search-query').value = '';
+      renderEventsList();
+    }
+
+    function scrollToEvents() {
+      document.getElementById('events-listing-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function scrollToCities() {
+      document.getElementById('cities-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 4. RENDER TICKETMASTER-STYLE EVENT ROWS
+    function renderEventsList() {
+      const container = document.getElementById('events-rows-container');
+      const emptyState = document.getElementById('empty-events-state');
+      const titleEl = document.getElementById('events-section-title');
+      const badgeEl = document.getElementById('active-filter-badge');
+      const sortBy = document.getElementById('sort-events-select').value;
+
+      let filtered = EVENTS_CATALOG.filter(evt => {
+        if (appState.category !== 'ALL' && evt.category !== appState.category) return false;
+        if (appState.vipOnly && !evt.vipAvailable) return false;
+        if (appState.blackFridayOnly && !evt.blackFridayDeal) return false;
+        if (appState.locationFilter && !evt.city.toLowerCase().includes(appState.locationFilter) && !evt.venue.toLowerCase().includes(appState.locationFilter)) return false;
+        if (appState.dateFilter === 'WEEKEND' && !evt.dayTime.startsWith('Sat') && !evt.dayTime.startsWith('Sun') && !evt.dayTime.startsWith('Fri')) return false;
+        if (appState.dateFilter === 'NEXT30' && !evt.dateISO.startsWith('2026-11') && !evt.dateISO.startsWith('2026-12')) return false;
+        if (appState.dateFilter === '2027' && !evt.dateISO.startsWith('2027')) return false;
+
+        if (appState.searchQuery) {
+          const q = appState.searchQuery;
+          const match = evt.artist.toLowerCase().includes(q) ||
+                        evt.title.toLowerCase().includes(q) ||
+                        evt.venue.toLowerCase().includes(q) ||
+                        evt.city.toLowerCase().includes(q) ||
+                        evt.subGenre.toLowerCase().includes(q);
+          if (!match) return false;
+        }
+        return true;
+      });
+
+      if (sortBy === 'date') {
+        filtered.sort((a, b) => new Date(a.dateISO) - new Date(b.dateISO));
+      } else if (sortBy === 'price-low') {
+        filtered.sort((a, b) => Math.min(...a.tiers.map(t => t.price)) - Math.min(...b.tiers.map(t => t.price)));
+      } else if (sortBy === 'price-high') {
+        filtered.sort((a, b) => Math.min(...b.tiers.map(t => t.price)) - Math.min(...a.tiers.map(t => t.price)));
+      }
+
+      // Dynamic Heading
+      const isFiltered = appState.category !== 'ALL' || appState.vipOnly || appState.blackFridayOnly || appState.locationFilter || appState.dateFilter !== 'ALL' || appState.searchQuery;
+      if (appState.blackFridayOnly) {
+        titleEl.textContent = 'Black Friday Early Access Ticket Deals';
+      } else if (appState.vipOnly) {
+        titleEl.textContent = 'VIP Packages & Special Access Events';
+      } else if (appState.category !== 'ALL') {
+        titleEl.textContent = `${appState.category} Tickets`;
+      } else {
+        titleEl.textContent = 'Popular Near You';
+      }
+
+      if (isFiltered) {
+        badgeEl.textContent = `${filtered.length} Result${filtered.length === 1 ? '' : 's'}`;
+        badgeEl.classList.remove('hidden');
+      } else {
+        badgeEl.classList.add('hidden');
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      container.innerHTML = filtered.map(evt => {
+        const minPrice = Math.min(...evt.tiers.map(t => t.price));
+        return `
+          <div class="py-4 px-2 sm:px-3 hover:bg-[#F6F6F6] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            
+            <!-- Left: Date Block + Event Info -->
+            <div class="flex items-start sm:items-center gap-4 min-w-0">
+              <div class="w-14 text-center shrink-0 border-r border-slate-200 pr-3">
+                <span class="block text-[11px] font-extrabold uppercase text-[#026CDF]">${evt.monthShort}</span>
+                <span class="block font-display font-extrabold text-xl text-[#121212] leading-tight">${evt.dayNum}</span>
+              </div>
+
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2 text-xs text-[#595959] font-medium">
+                  <span>${evt.dayTime}</span>
+                  <span>•</span>
+                  <span class="font-bold text-[#121212]">${evt.venue}</span>
+                  <span>— ${evt.city}</span>
+                </div>
+
+                <h3 onclick="openSeatModal('${evt.id}')" class="cursor-pointer font-display font-extrabold text-base sm:text-[17px] text-[#121212] hover:text-[#026CDF] transition-colors truncate mt-0.5">
+                  ${evt.artist} — <span class="font-semibold text-[#595959]">${evt.title}</span>
+                </h3>
+
+                <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                  <span class="px-2 py-0.5 bg-slate-200/80 text-[#121212] text-[10px] font-bold uppercase tracking-wider rounded-[2px]">${evt.subGenre}</span>
+                  ${evt.vipAvailable ? `<span class="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-extrabold uppercase tracking-wider rounded-[2px]">VIP Packages Available</span>` : ''}
+                  ${evt.blackFridayDeal ? `<span class="px-2 py-0.5 bg-blue-100 text-[#026CDF] text-[10px] font-extrabold uppercase tracking-wider rounded-[2px]">Black Friday Deal</span>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Starting Price + Royal Blue "Find Tickets" CTA -->
+            <div class="flex items-center justify-between sm:justify-end gap-4 shrink-0 pl-16 sm:pl-0">
+              <div class="text-left sm:text-right">
+                <span class="block text-[10px] uppercase font-bold text-[#595959]">From</span>
+                <span class="font-display font-extrabold text-base text-[#121212]">$${minPrice}</span>
+              </div>
+              <button 
+                onclick="openSeatModal('${evt.id}')" 
+                class="px-4 py-2.5 bg-[#026CDF] hover:bg-[#0152AD] text-white font-bold text-xs sm:text-sm rounded-[4px] transition-colors flex items-center gap-1.5 shadow-sm"
+              >
+                <span>Find Tickets</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // 5. INTERACTIVE SEAT MAP & CHECKOUT MODAL
+    function openSeatModal(eventId) {
+      const evt = EVENTS_CATALOG.find(e => e.id === eventId);
+      if (!evt) return;
+
+      appState.activeEvent = evt;
+      appState.selectedTierIndex = 0;
+      appState.quantity = 2;
+
+      document.getElementById('checkout-step-1').classList.remove('hidden');
+      document.getElementById('checkout-step-2').classList.add('hidden');
+
+      document.getElementById('modal-event-badge').textContent = evt.category;
+      document.getElementById('modal-event-date').textContent = `${evt.monthShort} ${evt.dayNum} • ${evt.dayTime}`;
+      document.getElementById('modal-event-title').textContent = `${evt.artist} — ${evt.title}`;
+      document.getElementById('modal-event-venue').textContent = `${evt.venue} • ${evt.city}`;
+
+      document.getElementById('svg-price-0').textContent = `$${evt.tiers[0].price}`;
+      document.getElementById('svg-price-1a').textContent = `$${evt.tiers[1].price}`;
+      document.getElementById('svg-price-1b').textContent = `$${evt.tiers[1].price}`;
+      document.getElementById('svg-price-1c').textContent = `$${evt.tiers[1].price}`;
+      document.getElementById('svg-price-2').textContent = `$${evt.tiers[2].price}`;
+
+      if (appState.user) {
+        document.getElementById('attendee-name').value = appState.user.name;
+        document.getElementById('attendee-email').value = appState.user.email;
+      }
+
+      renderTierOptions();
+      highlightSelectedSection();
+      updateCheckoutSummary();
+
+      document.getElementById('seat-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      lucide.createIcons();
+    }
+
+    function closeSeatModal() {
+      document.getElementById('seat-modal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    function selectTier(idx) {
+      appState.selectedTierIndex = idx;
+      renderTierOptions();
+      highlightSelectedSection();
+      updateCheckoutSummary();
+    }
+
+    function highlightSelectedSection() {
+      const tier = appState.activeEvent.tiers[appState.selectedTierIndex];
+      document.getElementById('seat-map-pill').textContent = `Selected: ${tier.name} (${tier.section})`;
+      document.querySelectorAll('.venue-section').forEach(el => {
+        const i = parseInt(el.getAttribute('data-tier-index'), 10);
+        el.classList.toggle('selected', i === appState.selectedTierIndex);
+      });
+    }
+
+    function renderTierOptions() {
+      const container = document.getElementById('tier-options-list');
+      container.innerHTML = appState.activeEvent.tiers.map((tier, idx) => {
+        const active = idx === appState.selectedTierIndex;
+        return `
+          <div 
+            onclick="selectTier(${idx})" 
+            class="cursor-pointer p-3 rounded-[4px] border transition-all flex items-center justify-between gap-3 ${
+              active ? 'border-2 border-[#026CDF] bg-blue-50/60' : 'border-slate-300 bg-white hover:border-slate-400'
+            }"
+          >
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-display font-extrabold text-sm text-[#121212]">${tier.name}</span>
+                <span class="px-1.5 py-0.5 bg-slate-200 text-[#121212] font-mono text-[10px] font-bold rounded-[2px]">${tier.section}</span>
+              </div>
+              <p class="text-xs text-[#595959] mt-0.5">${tier.perks}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <span class="font-display font-extrabold text-base text-[#121212]">$${tier.price}</span>
+              <span class="block text-[10px] text-[#595959]">ea + fees</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateQuantity(delta) {
+      const next = appState.quantity + delta;
+      if (next >= 1 && next <= 6) {
+        appState.quantity = next;
+        document.getElementById('ticket-qty-display').textContent = appState.quantity;
+        updateCheckoutSummary();
+      }
+    }
+
+    function getOrderTotals() {
+      const tier = appState.activeEvent.tiers[appState.selectedTierIndex];
+      const subtotal = tier.price * appState.quantity;
+      const serviceFee = +(subtotal * 0.14).toFixed(2);
+      const facilityFee = +(6.00 * appState.quantity).toFixed(2);
+      const total = +(subtotal + serviceFee + facilityFee).toFixed(2);
+      return { tier, subtotal, serviceFee, facilityFee, total };
+    }
+
+    function updateCheckoutSummary() {
+      const { tier, subtotal, serviceFee, facilityFee, total } = getOrderTotals();
+      document.getElementById('ticket-qty-display').textContent = appState.quantity;
+      document.getElementById('summary-base-label').textContent = `${appState.quantity} × ${tier.name} ($${tier.price.toFixed(2)})`;
+      document.getElementById('summary-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+      document.getElementById('summary-service-fee').textContent = `$${serviceFee.toFixed(2)}`;
+      document.getElementById('summary-facility-fee').textContent = `$${facilityFee.toFixed(2)}`;
+      document.getElementById('summary-total').textContent = `$${total.toFixed(2)}`;
+    }
+
+    function selectPaymentMethod(method) {
+      appState.paymentMethod = method;
+      const ppBtn = document.getElementById('pay-method-paypal');
+      const cardBtn = document.getElementById('pay-method-card');
+      if (method === 'PayPal') {
+        ppBtn.className = 'py-2.5 px-3 border-2 border-[#026CDF] bg-blue-50/70 rounded-[4px] flex items-center justify-center gap-1.5 font-extrabold italic text-sm text-[#003087]';
+        cardBtn.className = 'py-2.5 px-3 border border-slate-300 bg-white rounded-[4px] flex items-center justify-center gap-1.5 font-bold text-xs text-[#121212]';
+      } else {
+        cardBtn.className = 'py-2.5 px-3 border-2 border-[#026CDF] bg-blue-50/70 rounded-[4px] flex items-center justify-center gap-1.5 font-bold text-xs text-[#026CDF]';
+        ppBtn.className = 'py-2.5 px-3 border border-slate-300 bg-white rounded-[4px] flex items-center justify-center gap-1.5 font-extrabold italic text-sm text-[#003087]';
+      }
+      document.getElementById('checkout-pay-label').textContent = `Paying via ${method} Express Checkout`;
+    }
+
+    function goToCheckoutStep2() {
+      const { tier, total } = getOrderTotals();
+      document.getElementById('checkout-final-tier').textContent = `${appState.quantity} × ${tier.name} (${tier.section})`;
+      document.getElementById('checkout-final-total').textContent = `$${total.toFixed(2)}`;
+      document.getElementById('checkout-step-1').classList.add('hidden');
+      document.getElementById('checkout-step-2').classList.remove('hidden');
+    }
+
+    function goToCheckoutStep1() {
+      document.getElementById('checkout-step-2').classList.add('hidden');
+      document.getElementById('checkout-step-1').classList.remove('hidden');
+    }
+
+    function completeBooking(e) {
+      e.preventDefault();
+      const name = document.getElementById('attendee-name').value.trim();
+      const email = document.getElementById('attendee-email').value.trim();
+      if (!name || !email) return;
+
+      const { tier, total } = getOrderTotals();
+      const row = String.fromCharCode(65 + Math.floor(Math.random() * 10));
+      const startSeat = Math.floor(Math.random() * 16) + 1;
+      const seats = Array.from({ length: appState.quantity }, (_, i) => startSeat + i).join(', ');
+
+      const order = {
+        orderId: 'TM-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+        artist: appState.activeEvent.artist,
+        title: appState.activeEvent.title,
+        dateDisplay: `${appState.activeEvent.monthShort} ${appState.activeEvent.dayNum} • ${appState.activeEvent.dayTime}`,
+        venue: appState.activeEvent.venue,
+        city: appState.activeEvent.city,
+        tierName: tier.name,
+        section: tier.section,
+        row,
+        seats,
+        quantity: appState.quantity,
+        totalPaid: total.toFixed(2),
+        paymentMethod: appState.paymentMethod,
+        holderName: name,
+        holderEmail: email
+      };
+
+      appState.walletOrders.unshift(order);
+      try {
+        localStorage.setItem('tm_wallet_v2', JSON.stringify(appState.walletOrders));
+      } catch (err) {}
+      updateWalletBadge();
+
+      closeSeatModal();
+      showToast(`Order Confirmed via ${appState.paymentMethod}! Added to My Tickets.`, 'success');
+      setTimeout(() => openWalletModal(), 300);
+    }
+
+    function updateWalletBadge() {
+      const count = appState.walletOrders.reduce((acc, o) => acc + o.quantity, 0);
+      document.getElementById('wallet-badge-count').textContent = count;
+    }
+
+    // 6. DIGITAL TICKET WALLET ("MY TICKETS")
+    function openWalletModal() {
+      renderWalletContent();
+      document.getElementById('wallet-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      lucide.createIcons();
+    }
+
+    function closeWalletModal() {
+      document.getElementById('wallet-modal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    function renderWalletContent() {
+      const container = document.getElementById('wallet-content');
+      if (appState.walletOrders.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 px-4 bg-white border border-slate-200 rounded-md">
+            <i data-lucide="ticket" class="w-12 h-12 text-[#026CDF] mx-auto mb-3"></i>
+            <h4 class="font-display font-extrabold text-lg text-[#121212]">No Upcoming Tickets Yet</h4>
+            <p class="text-sm text-[#595959] max-w-md mx-auto mt-1">Select any concert, game, or theater show on the homepage to reserve your verified mobile passes.</p>
+            <button onclick="closeWalletModal()" class="mt-5 px-5 py-2.5 bg-[#026CDF] text-white text-sm font-bold rounded-[4px]">Browse Live Events</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = appState.walletOrders.map(order => `
+        <div class="bg-white border border-slate-300 rounded-md overflow-hidden shadow-sm">
+          <div class="holo-strip h-1.5 w-full"></div>
+          <div class="grid grid-cols-1 md:grid-cols-12">
+            <div class="md:col-span-8 p-5 flex flex-col justify-between space-y-4">
+              <div>
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                  <span class="px-2 py-0.5 bg-blue-100 text-[#026CDF] font-extrabold uppercase tracking-wider rounded-[2px]">SafeTix™ Verified • ${order.quantity} Ticket(s)</span>
+                  <span class="font-mono text-[#595959]">#${order.orderId}</span>
+                </div>
+                <h4 class="font-display font-extrabold text-xl text-[#121212]">${order.artist}</h4>
+                <p class="text-xs font-semibold text-[#595959]">${order.title}</p>
+                <p class="text-xs text-[#121212] font-bold mt-2">${order.dateDisplay} • ${order.venue}, ${order.city}</p>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 p-3 bg-[#F6F6F6] border border-slate-200 rounded-[4px] text-center">
+                <div>
+                  <span class="block text-[10px] font-bold uppercase text-[#595959]">SEC</span>
+                  <span class="font-display font-extrabold text-base text-[#121212]">${order.section}</span>
+                </div>
+                <div class="border-x border-slate-300">
+                  <span class="block text-[10px] font-bold uppercase text-[#595959]">ROW</span>
+                  <span class="font-display font-extrabold text-base text-[#121212]">${order.row}</span>
+                </div>
+                <div>
+                  <span class="block text-[10px] font-bold uppercase text-[#595959]">SEAT(S)</span>
+                  <span class="font-display font-extrabold text-base text-[#026CDF]">${order.seats}</span>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-[#595959]">
+                <span>Holder: <strong class="text-[#121212]">${order.holderName}</strong> • Paid $${order.totalPaid} (${order.paymentMethod})</span>
+                <button onclick="downloadPassReceipt('${order.orderId}')" class="px-3 py-1.5 bg-[#026CDF] hover:bg-[#0152AD] text-white font-bold rounded-[4px] flex items-center gap-1.5">
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i> Save Pass
+                </button>
+              </div>
+            </div>
+
+            <div class="md:col-span-4 bg-[#F6F6F6] border-t md:border-t-0 md:border-l border-dashed border-slate-300 p-5 flex flex-col items-center justify-center text-center">
+              <div class="bg-white p-2.5 border border-slate-200 rounded shadow-sm mb-2">
+                <svg class="w-28 h-28 text-[#121212]" viewBox="0 0 100 100" fill="currentColor">
+                  <rect x="8" y="8" width="26" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="6"/>
+                  <rect x="15" y="15" width="12" height="12"/>
+                  <rect x="66" y="8" width="26" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="6"/>
+                  <rect x="73" y="15" width="12" height="12"/>
+                  <rect x="8" y="66" width="26" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="6"/>
+                  <rect x="15" y="73" width="12" height="12"/>
+                  <rect x="44" y="12" width="12" height="12"/>
+                  <rect x="42" y="42" width="16" height="16"/>
+                  <rect x="66" y="46" width="22" height="8"/>
+                  <rect x="46" y="68" width="8" height="22"/>
+                  <rect x="68" y="70" width="20" height="18"/>
+                </svg>
+              </div>
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#026CDF]">SafeTix™ Barcode</span>
+              <span class="text-[10px] text-[#595959] mt-0.5">Live NFC &amp; Rotating QR Active</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function downloadPassReceipt(orderId) {
+      const order = appState.walletOrders.find(o => o.orderId === orderId);
+      if (!order) return;
+      const text = `TICKETMSTERS VERIFIED MOBILE PASS\nOrder: ${order.orderId}\nEvent: ${order.artist} - ${order.title}\nDate: ${order.dateDisplay}\nVenue: ${order.venue}, ${order.city}\nSection: ${order.section} | Row: ${order.row} | Seat(s): ${order.seats}\nHolder: ${order.holderName}\nTotal Paid: $${order.totalPaid} (${order.paymentMethod})`;
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Ticketmsters-${order.orderId}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`Saved mobile pass #${order.orderId}`, 'success');
+    }
+
+    // 7. SELL TICKETS MODAL ("SELL" UTILITY BAR ACTION)
+    function openSellModal() {
+      document.getElementById('sell-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeSellModal() {
+      document.getElementById('sell-modal').classList.add('hidden');
+    }
+
+    function submitResaleListing(e) {
+      e.preventDefault();
+      const artist = document.getElementById('sell-artist').value.trim();
+      const venue = document.getElementById('sell-venue').value.trim();
+      const city = document.getElementById('sell-city').value.trim();
+      const category = document.getElementById('sell-category').value;
+      const section = document.getElementById('sell-section').value.trim().toUpperCase();
+      const price = parseInt(document.getElementById('sell-price').value, 10) || 120;
+
+      const newListing = {
+        id: 'evt-resale-' + Date.now(),
+        artist,
+        title: 'Verified Fan-to-Fan Resale Listing',
+        category,
+        subGenre: 'FAN RESALE',
+        dateISO: '2026-12-22T20:00:00',
+        monthShort: 'DEC',
+        dayNum: '22',
+        dayTime: 'Tue • 8:00 PM',
+        venue,
+        city,
+        vipAvailable: false,
+        blackFridayDeal: false,
+        tiers: [
+          { name: `Verified Resale (${section})`, section, price, perks: 'Instant mobile transfer guaranteed' },
+          { name: 'Lower Bowl Standard', section: 'SEC 110', price: Math.round(price * 0.85), perks: 'Verified mobile ticket' },
+          { name: 'Upper Deck Resale', section: 'SEC 305', price: Math.max(45, Math.round(price * 0.6)), perks: 'Verified mobile ticket' }
+        ]
+      };
+
+      EVENTS_CATALOG.unshift(newListing);
+      closeSellModal();
+      resetAllFilters();
+      scrollToEvents();
+      showToast(`Your tickets for ${artist} (${section}) are now live!`, 'success');
+    }
+
+    // 8. SIGN IN / REGISTER MODAL
+    function openAuthModal() {
+      document.getElementById('auth-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
+    }
+
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('auth-name-input').value.trim();
+      const email = document.getElementById('auth-email-input').value.trim();
+      if (!name || !email) return;
+      appState.user = { name, email };
+      try {
+        localStorage.setItem('tm_user_v2', JSON.stringify(appState.user));
+      } catch (err) {}
+      updateAuthHeader();
+      closeAuthModal();
+      showToast(`Welcome back, ${name}!`, 'success');
+    }
+
+    function updateAuthHeader() {
+      if (appState.user) {
+        document.getElementById('auth-header-label').textContent = `Hi, ${appState.user.name.split(' ')[0]}`;
+      }
+    }
+
+    // 9. FLOATING FEEDBACK DRAWER
+    function toggleFeedbackDrawer() {
+      document.getElementById('feedback-drawer').classList.toggle('hidden');
+      lucide.createIcons();
+    }
+
+    function selectFeedbackScore(score) {
+      document.querySelectorAll('.fb-score-btn').forEach((btn, i) => {
+        if (i + 1 === score) {
+          btn.className = 'fb-score-btn py-1.5 border border-[#026CDF] bg-blue-50 text-[#026CDF] rounded text-xs font-bold';
+        } else {
+          btn.className = 'fb-score-btn py-1.5 border border-slate-300 rounded text-xs font-bold hover:border-[#026CDF]';
+        }
+      });
+    }
+
+    function submitFeedback(e) {
+      e.preventDefault();
+      document.getElementById('feedback-text').value = '';
+      toggleFeedbackDrawer();
+      showToast('Thank you! Your feedback was sent to the Ticketmsters team.', 'success');
+    }
+
+    // 10. TOAST HELPER
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const borderClass = type === 'success' ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-[#026CDF]';
+      toast.className = `pointer-events-auto bg-[#121212] text-white px-4 py-3 rounded shadow-xl text-xs sm:text-sm font-semibold flex items-center gap-2.5 transition-all duration-300 ${borderClass}`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3400);
+    }
+  </script>
+</body>
+</html>
